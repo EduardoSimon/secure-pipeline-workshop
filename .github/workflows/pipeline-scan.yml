@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
 
       - name: Run zizmor 🌈
-        uses: zizmorcore/zizmor-action@main
+        uses: zizmorcore/zizmor-action@5ca5fc7a4779c5263a3ffa0e1f693009994446d1 # 0.1.2
         with:
           min-severity: "high"
   pipeline-scan:
@@ -38,7 +38,7 @@ jobs:
           persist-credentials: false
 
       - name: Set Up Ruby
-        uses: ruby/setup-ruby@master
+        uses: ruby/setup-ruby@c2e9820886ceac2fc85521293743c280675373a0 # 1.256.0
         with:
           ruby-version: '3.3'
 
