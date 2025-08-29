@@ -13,6 +13,7 @@
 # 5. Configure min-severity level as needed (low, medium, high, unknown)
 # =============================================================================
 
+
 jobs:
   zizmor:
     name: Run zizmor 🌈
