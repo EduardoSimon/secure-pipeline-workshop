@@ -130,7 +130,7 @@ resource "aws_security_group" "ecs_tasks" {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [data.aws_vpc.existing.cidr_block]
   }
 
   # trivy:ignore:AVD-AWS-0104
