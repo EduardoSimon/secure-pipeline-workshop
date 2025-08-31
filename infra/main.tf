@@ -122,7 +122,7 @@ resource "aws_security_group" "ecs_tasks" {
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [data.aws_vpc.existing.cidr_block]
   }
 
   egress {
