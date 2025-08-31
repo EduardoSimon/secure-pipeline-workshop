@@ -9,11 +9,11 @@
     "test": "echo 'No tests configured'"
   },
   "dependencies": {
-    "lodash": "4.17.15"
+    "lodash": "^4.17.15"
   },
   "devDependencies": {},
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=24.0.0"
   },
   "author": "Workshop Team",
   "license": "MIT"
