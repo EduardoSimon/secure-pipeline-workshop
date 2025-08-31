@@ -29,7 +29,7 @@ jobs:
         with:
           scan-type: 'config'
           scan-ref: infra/
-          hide-progress: true
+          hide-progress: false
           format: 'sarif'
           limit-severities-for-sarif: true
           output: 'trivy-results.sarif'
