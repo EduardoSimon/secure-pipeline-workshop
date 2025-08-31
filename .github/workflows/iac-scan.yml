@@ -44,7 +44,6 @@ jobs:
           sarif_file: 'trivy-results.sarif'
 
       - name: Display Security Tab URL
-        if: steps.scan-tool.outcome == 'failure'
         run: |
           echo "🔗 **GitHub Security Tab URLs:**"
           echo ""
