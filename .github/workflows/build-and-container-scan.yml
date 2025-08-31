@@ -72,8 +72,10 @@ jobs:
       - name: Set scan result
         id: scan-result
         if: always()
+        env:
+          SCAN_OUTCOME: ${{ steps.scan-tool.outcome }}
         run: |
-          if [ "${{ steps.scan-tool.outcome }}" == "success" ]; then
+          if [ "$SCAN_OUTCOME" == "success" ]; then
             echo "result=success" >> "$GITHUB_OUTPUT"
             echo "✅ Container scan passed - no critical vulnerabilities found"
           else
@@ -84,13 +86,20 @@ jobs:
 
       - name: Build Summary
         if: always()
+        env:
+          SCAN_OUTCOME: ${{ steps.scan-tool.outcome }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+          IMAGE_ID: ${{ steps.build.outputs.imageid }}
+          SCAN_RESULT: ${{ steps.scan-result.outputs.result }}
         run: |
           echo "📦 Build and Scan Summary:"
-          echo "- Image built successfully: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          echo "- Tags: ${{ steps.meta.outputs.tags }}"
-          echo "- Image ID: ${{ steps.build.outputs.imageid }}"
-          echo "- Security scan: ${{ steps.scan-result.outputs.result }}"
-          if [ "${{ steps.scan-tool.outcome }}" == "success" ]; then
+          echo "- Image built successfully: $REGISTRY/$IMAGE_NAME"
+          echo "- Tags: $TAGS"
+          echo "- Image ID: $IMAGE_ID"
+          echo "- Security scan: $SCAN_RESULT"
+          if [ "$SCAN_OUTCOME" == "success" ]; then
             echo "✅ Build and scan completed successfully"
           else
             echo "❌ Build completed but scan failed"
@@ -159,27 +168,38 @@ jobs:
       - name: Set scan result
         id: scan-result
         if: always()
+        env:
+          SCAN_OUTCOME: ${{ steps.scan-tool.outcome }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          if [ "${{ steps.scan-tool.outcome }}" == "success" ]; then
+          if [ "$SCAN_OUTCOME" == "success" ]; then
             echo "result=success" >> "$GITHUB_OUTPUT"
             echo "✅ Container scan passed - no critical vulnerabilities found"
           else
             echo "result=failure" >> "$GITHUB_OUTPUT"
             echo "❌ Container scan failed - critical vulnerabilities detected"
             echo "🔍 View security findings for this PR:"
-            echo "https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.pull_request.number }}+is%3Aopen"
+            echo "https://github.com/$GITHUB_REPOSITORY/security/code-scanning?query=pr%3A$PR_NUMBER+is%3Aopen"
             exit 1
           fi
 
       - name: Build Summary
         if: always()
+        env:
+          SCAN_OUTCOME: ${{ steps.scan-tool.outcome }}
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+          IMAGE_ID: ${{ steps.build.outputs.imageid }}
+          SCAN_RESULT: ${{ steps.scan-result.outputs.result }}
         run: |
           echo "📦 Build and Scan Summary:"
-          echo "- Image built successfully: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-          echo "- Tags: ${{ steps.meta.outputs.tags }}"
-          echo "- Image ID: ${{ steps.build.outputs.imageid }}"
-          echo "- Security scan: ${{ steps.scan-result.outputs.result }}"
-          if [ "${{ steps.scan-tool.outcome }}" == "success" ]; then
+          echo "- Image built successfully: $REGISTRY/$IMAGE_NAME"
+          echo "- Tags: $TAGS"
+          echo "- Image ID: $IMAGE_ID"
+          echo "- Security scan: $SCAN_RESULT"
+          if [ "$SCAN_OUTCOME" == "success" ]; then
             echo "✅ Build and scan completed successfully"
           else
             echo "❌ Build completed but scan failed"
