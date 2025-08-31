@@ -30,9 +30,7 @@ jobs:
           scan-type: 'config'
           scan-ref: infra/
           hide-progress: false
-          format: 'sarif'
-          limit-severities-for-sarif: true
-          output: 'trivy-results.sarif'
+          format: 'table'
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
         continue-on-error: false
@@ -46,19 +44,8 @@ jobs:
       - name: Display Security Tab URL
         if: always()
         run: |
-          echo "🔗 **GitHub Security Tab URLs:**"
-          echo ""
-          echo "📋 All Code Scanning Alerts (Current Branch):"
-          echo "https://github.com/${{ github.repository }}/security/code-scanning?query=branch%3A${{ github.ref_name }}"
-          echo ""
           echo "🎯 Trivy IaC Results Only (Current Branch):"
-          echo "https://github.com/${{ github.repository }}/security/code-scanning?query=tool%3Atrivy+branch%3A${{ github.ref_name }}"
-          echo ""
-          echo "🚨 Critical/High Severity Only (Current Branch):"
-          echo "https://github.com/${{ github.repository }}/security/code-scanning?query=tool%3Atrivy+severity%3Acritical%2Chigh+branch%3A${{ github.ref_name }}"
-          echo ""
-          echo "🌐 All Branches - Trivy Results:"
-          echo "https://github.com/${{ github.repository }}/security/code-scanning?query=tool%3Atrivy"
+          echo "https://github.com/${GITHUB_REPOSITORY}/security/code-scanning?query=tool%3Atrivy+branch%3A${GITHUB_REF_NAME}"
           echo ""
 
       - name: Set scan result
