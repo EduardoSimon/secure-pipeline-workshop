@@ -12,18 +12,134 @@ permissions:
   actions: read
 
 jobs:
-  # 🚧 REPLACE THIS ENTIRE 'jobs:' SECTION WITH WORKSHOP CONTENT! 🚧
-  # Copy from: workshop/code_scan/{tool}/workflow.yml
-
-  code-scan:
-    name: "🚧 Code Scan - Workshop Placeholder"
+  semgrep-scan:
+    name: Semgrep Community Scan
     runs-on: ubuntu-latest
     outputs:
-      result: ${{ steps.placeholder.outputs.result }}
+      result: ${{ steps.scan-result.outputs.result }}
     steps:
-      - name: Workshop Placeholder
-        id: placeholder
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Semgrep Community Edition
+        run: pip install semgrep
+
+      - name: Run Semgrep Security Scan
+        id: semgrep-tool
         run: |
-          echo "🚧 Replace this job with content from workshop/code_scan/{tool}/workflow.yml!"
-          echo "This will implement: Code scan with your chosen tool"
-          echo "result=workshop-placeholder" >> "$GITHUB_OUTPUT"
+          semgrep \
+            --config=p/security-audit \
+            --config=p/secrets \
+            --config=p/javascript \
+            --config=p/owasp-top-ten \
+            --error \
+            --sarif \
+            --output=semgrep-results.sarif \
+            ./code/ || echo "SEMGREP_EXIT_CODE=$?" >> "$GITHUB_ENV"
+
+      - name: Upload Semgrep SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep-results.sarif
+          category: semgrep
+        if: always()
+
+      - name: Set scan result
+        id: scan-result
+        if: always()
+        run: |
+          # Semgrep exit codes: 0=no findings, 1=findings found, 2+=error
+          if [ "${{ steps.semgrep-tool.outcome }}" == "success" ] && [ -z "$SEMGREP_EXIT_CODE" ]; then
+            echo "result=success" >> "$GITHUB_OUTPUT"
+            echo "✅ Semgrep scan passed - no vulnerabilities found"
+          elif [ "$SEMGREP_EXIT_CODE" == "1" ] || [ "${{ steps.semgrep-tool.outcome }}" == "failure" ]; then
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            echo "❌ Semgrep scan failed - vulnerabilities detected"
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}+is%3Aopen"
+            else
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
+            fi
+            exit 1
+          else
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            echo "❌ Semgrep scan encountered an error"
+            exit 1
+          fi
+  codeql-scan:
+    name: CodeQL Security Scan
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.scan-result.outputs.result }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        id: codeql-tool
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: codeql
+          output: sarif-results
+          upload: false
+
+      - name: Check CodeQL Results
+        id: check-results
+        if: always()
+        run: |
+          # Check if SARIF file exists and contains results
+          if [ -f "sarif-results/javascript.sarif" ]; then
+            # Count the number of results in the SARIF file
+            RESULT_COUNT=$(python3 -c "
+            import json, sys
+            try:
+                with open('sarif-results/javascript.sarif', 'r') as f:
+                    data = json.load(f)
+                    total_results = 0
+                    for run in data.get('runs', []):
+                        total_results += len(run.get('results', []))
+                    print(total_results)
+            except:
+                print(0)
+            ")
+            echo "CODEQL_RESULTS_COUNT=$RESULT_COUNT" >> "$GITHUB_ENV"
+            echo "Found $RESULT_COUNT CodeQL findings"
+          else
+            echo "CODEQL_RESULTS_COUNT=0" >> "$GITHUB_ENV"
+            echo "No CodeQL SARIF file found"
+          fi
+
+      - name: Upload CodeQL SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: sarif-results/javascript.sarif
+          category: codeql
+
+      - name: Set scan result
+        id: scan-result
+        if: always()
+        run: |
+          if [ "${{ steps.codeql-tool.outcome }}" == "success" ] && [ "$CODEQL_RESULTS_COUNT" == "0" ]; then
+            echo "result=success" >> "$GITHUB_OUTPUT"
+            echo "✅ CodeQL scan passed - no critical vulnerabilities found"
+          elif [ "${{ steps.codeql-tool.outcome }}" == "success" ] && [ "$CODEQL_RESULTS_COUNT" != "0" ]; then
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            echo "❌ CodeQL scan failed - $CODEQL_RESULTS_COUNT vulnerabilities detected"
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}"
+            else
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
+            fi
+            exit 1
+          else
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            echo "❌ CodeQL scan encountered an error"
+            exit 1
+          fi
