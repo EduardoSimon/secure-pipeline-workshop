@@ -94,9 +94,9 @@ jobs:
         run: |
           # Use gh CLI to check for code scanning alerts
           if [ "${{ github.event_name }}" == "pull_request" ]; then
-            ALERTS=$(gh api "repos/${{ github.repository }}/code-scanning/alerts?state=open&pr=${{ github.event.number }}" 2>/dev/null || echo "[]")
+            ALERTS=$(gh api "repos/${{ github.repository }}/code-scanning/alerts?state=open&pr=${{ github.event.number }}&tool_name=CodeQL" 2>/dev/null || echo "[]")
           else
-            ALERTS=$(gh api "repos/${{ github.repository }}/code-scanning/alerts?state=open" 2>/dev/null || echo "[]")
+            ALERTS=$(gh api "repos/${{ github.repository }}/code-scanning/alerts?state=open&tool_name=CodeQL" 2>/dev/null || echo "[]")
           fi
           
           ALERT_COUNT=$(echo "$ALERTS" | jq '. | length' 2>/dev/null || echo "0")
