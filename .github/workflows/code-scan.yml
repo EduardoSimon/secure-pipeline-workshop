@@ -56,9 +56,9 @@ jobs:
             echo "result=failure" >> "$GITHUB_OUTPUT"
             echo "❌ Semgrep scan failed - vulnerabilities detected"
             if [ "${{ github.event_name }}" == "pull_request" ]; then
-              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}+is%3Aopen"
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}+tool%3A%22Semgrep+OSS%22+is%3Aopen"
             else
-              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=tool%3A%22Semgrep+OSS%22+is%3Aopen"
             fi
             exit 1
           else
@@ -123,9 +123,9 @@ jobs:
             echo "result=failure" >> "$GITHUB_OUTPUT"
             echo "❌ CodeQL found $ALERT_COUNT security alert(s)"
             if [ "${{ github.event_name }}" == "pull_request" ]; then
-              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}"
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}+tool%3ACodeQL"
             else
-              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=tool%3ACodeQL"
             fi
             exit 1
           else
