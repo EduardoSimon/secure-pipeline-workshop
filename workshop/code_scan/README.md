@@ -1,4 +1,4 @@
-# Code Security Analysis (SAST/SCA) [🚧 Under construction]
+# Code Security Analysis (SAST/SCA)
 
 This workshop module covers Static Application Security Testing (SAST) and Software Composition Analysis (SCA) to identify security vulnerabilities in application code and dependencies.
 
@@ -19,6 +19,8 @@ Malicious actors can exploit vulnerabilities in your code to gain unauthorized a
 ### SAST Findings:
 - **SQL Injection** - Unsafe database queries
 - **Cross-Site Scripting (XSS)** - Unvalidated user input
+- **Command Injection** - Direct execution of system commands with user data
+- **Path Traversal** - Unsafe file access with user-controlled paths
 - **Authentication Flaws** - Weak authentication mechanisms
 - **Authorization Issues** - Missing access controls
 - **Hardcoded Secrets** - Credentials in source code
@@ -32,7 +34,14 @@ Malicious actors can exploit vulnerabilities in your code to gain unauthorized a
 
 ## Tools Used in This Module
 
-- [**Dependency Check**](https://github.com/dependency-check/DependencyCheck) - OWASP tool for Software Composition Analysis (SCA) to identify known vulnerabilities in dependencies
+- [**CodeQL**](https://github.com/github/codeql){:target="_blank"} - GitHub's semantic code analysis engine for deep security analysis
+  - [GitHub Action](https://github.com/github/codeql-action){:target="_blank"} | [Documentation](https://codeql.github.com/docs/){:target="_blank"}
+- [**Semgrep**](https://github.com/semgrep/semgrep){:target="_blank"} - Fast pattern-based security scanner with extensive rule sets 
+  - [Documentation](https://semgrep.dev/docs/){:target="_blank"} | [Community Rules](https://semgrep.dev/explore){:target="_blank"}
+- [**Dependency Check**](https://github.com/dependency-check/DependencyCheck){:target="_blank"} - OWASP tool for Software Composition Analysis (SCA) to identify known vulnerabilities in dependencies
+  - [GitHub Action](https://github.com/dependency-check/Dependency-Check_Action){:target="_blank"} | [Documentation](https://jeremylong.github.io/DependencyCheck/){:target="_blank"}
+
+> **Note**: Different ecosystems have specialized SAST tools (e.g., ESLint with security plugins for JavaScript, Bandit for Python, Brakeman for Ruby on Rails) that can provide more targeted analysis alongside general-purpose scanners.
 
 ## Learning Objectives
 

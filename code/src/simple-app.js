@@ -21,7 +21,9 @@ const server = http.createServer((req, res) => {
       timestamp: new Date().toISOString(),
       version: '1.0.0',
     }));
-  } else if (url === '/' && method === 'GET') {
+  } else if (url.startsWith('/') && method === 'GET') {
+    const urlParams = new URL(url, `http://${req.headers.host}`);
+    const name = urlParams.searchParams.get('name') || 'Guest';
     res.writeHead(200, { 'Content-Type': 'text/html' });
     res.end(`
       <!DOCTYPE html>
@@ -31,10 +33,47 @@ const server = http.createServer((req, res) => {
       </head>
       <body>
         <h1>Simple Workshop Application</h1>
+        <p>Hello ${name}!</p>
         <p>This is a simple application for security scanning workshop.</p>
       </body>
       </html>
     `);
+  } else if (url.startsWith('/user/') && method === 'GET') {
+    const userId = url.split('/')[2];
+    // Vulnerable: Direct string concatenation for SQL query
+    const query = `SELECT * FROM users WHERE id = '${userId}'`;
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      message: 'User lookup', 
+      query: query,
+      userId: userId 
+    }));
+  } else if (url.startsWith('/ping/') && method === 'GET') {
+    const host = url.split('/')[2];
+    const { exec } = require('child_process');
+    
+    // Vulnerable: Direct command execution with user input
+    exec(`ping -c 1 ${host}`, (error, stdout, stderr) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        host: host,
+        result: stdout || stderr || 'No output'
+      }));
+    });
+  } else if (url.startsWith('/file/') && method === 'GET') {
+    const filename = url.split('/')[2];
+    const fs = require('fs');
+    
+    // Vulnerable: No path sanitization
+    const filepath = `./uploads/${filename}`;
+    try {
+      const content = fs.readFileSync(filepath, 'utf8');
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end(content);
+    } catch (err) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'File not found' }));
+    }
   } else if (url === '/data' && method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
