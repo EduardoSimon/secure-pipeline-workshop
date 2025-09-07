@@ -72,6 +72,41 @@ const server = http.createServer((req, res) => {
       </body>
       </html>
     `);
+  } else if (url === '/eval' && method === 'POST') {
+    // Code injection vulnerability - CodeQL should catch this
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        if (data.code) {
+          // VULNERABLE: Direct eval of user input
+          const result = eval(data.code);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ result: result }));
+        } else {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'No code provided' }));
+        }
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+  } else if (url === '/redirect' && method === 'GET') {
+    // Open redirect vulnerability
+    const urlParams = new URL(url, `http://${req.headers.host}`);
+    const redirectUrl = urlParams.searchParams.get('url');
+    if (redirectUrl) {
+      // VULNERABLE: Unvalidated redirect
+      res.writeHead(302, { 'Location': redirectUrl });
+      res.end();
+    } else {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      res.end('Missing url parameter');
+    }
   } else if (url === '/data' && method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
