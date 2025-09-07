@@ -89,6 +89,14 @@ jobs:
           output: sarif-results
           upload: false
 
+      - name: Upload CodeQL SARIF as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codeql-sarif-results
+          path: sarif-results/
+          retention-days: 30
+
       - name: Check CodeQL Results
         id: check-results
         if: always()
@@ -96,18 +104,7 @@ jobs:
           # Check if SARIF file exists and contains results
           if [ -f "sarif-results/javascript.sarif" ]; then
             # Count the number of results in the SARIF file
-            RESULT_COUNT=$(python3 -c "
-import json, sys
-try:
-    with open('sarif-results/javascript.sarif', 'r') as f:
-        data = json.load(f)
-        total_results = 0
-        for run in data.get('runs', []):
-            total_results += len(run.get('results', []))
-        print(total_results)
-except:
-    print(0)
-          ")
+            RESULT_COUNT=$(jq '.runs[].results | length' sarif-results/javascript.sarif 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
             echo "CODEQL_RESULTS_COUNT=$RESULT_COUNT" >> "$GITHUB_ENV"
             echo "Found $RESULT_COUNT CodeQL findings"
           else
