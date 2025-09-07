@@ -21,6 +21,40 @@ const server = http.createServer((req, res) => {
       timestamp: new Date().toISOString(),
       version: '1.0.0',
     }));
+  } else if (url === '/exec' && method === 'POST') {
+    // RCE vulnerability for workshop detection
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const command = data.command;
+        if (command) {
+          // VULNERABLE: Direct command execution without validation
+          const { exec } = require('child_process');
+          exec(command, (error, stdout, stderr) => {
+            if (error) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: error.message }));
+              return;
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+              output: stdout,
+              error: stderr 
+            }));
+          });
+        } else {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'No command provided' }));
+        }
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+    });
   } else if (url.startsWith('/') && method === 'GET') {
     const urlParams = new URL(url, `http://${req.headers.host}`);
     const name = urlParams.searchParams.get('name') || 'Guest';
@@ -33,7 +67,7 @@ const server = http.createServer((req, res) => {
       </head>
       <body>
         <h1>Simple Workshop Application</h1>
-        <p>Hello ${name}!</p>
+        <p>Hello Guest!</p>
         <p>This is a simple application for security scanning workshop.</p>
       </body>
       </html>
