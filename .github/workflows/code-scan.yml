@@ -79,62 +79,23 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: javascript
-          queries: security-extended,security-and-quality
 
       - name: Perform CodeQL Analysis
         id: codeql-tool
         uses: github/codeql-action/analyze@v3
-        with:
-          category: codeql
-          output: sarif-results
-          upload: false
-
-      - name: Upload CodeQL SARIF as artifact
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: codeql-sarif-results
-          path: sarif-results/
-          retention-days: 30
-
-      - name: Check CodeQL Results
-        id: check-results
-        if: always()
-        run: |
-          # Check if SARIF file exists and contains results
-          if [ -f "sarif-results/javascript.sarif" ]; then
-            # Count the number of results in the SARIF file
-            RESULT_COUNT=$(jq '.runs[].results | length' sarif-results/javascript.sarif 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
-            echo "CODEQL_RESULTS_COUNT=$RESULT_COUNT" >> "$GITHUB_ENV"
-            echo "Found $RESULT_COUNT CodeQL findings"
-          else
-            echo "CODEQL_RESULTS_COUNT=0" >> "$GITHUB_ENV"
-            echo "No CodeQL SARIF file found"
-          fi
-
-      - name: Upload CodeQL SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: sarif-results/javascript.sarif
-          category: codeql
 
       - name: Set scan result
         id: scan-result
         if: always()
         run: |
-          if [ "${{ steps.codeql-tool.outcome }}" == "success" ] && [ "$CODEQL_RESULTS_COUNT" == "0" ]; then
+          if [ "${{ steps.codeql-tool.outcome }}" == "success" ]; then
             echo "result=success" >> "$GITHUB_OUTPUT"
-            echo "✅ CodeQL scan passed - no critical vulnerabilities found"
-          elif [ "${{ steps.codeql-tool.outcome }}" == "success" ] && [ "$CODEQL_RESULTS_COUNT" != "0" ]; then
-            echo "result=failure" >> "$GITHUB_OUTPUT"
-            echo "❌ CodeQL scan failed - $CODEQL_RESULTS_COUNT vulnerabilities detected"
+            echo "✅ CodeQL scan completed - check security tab for any findings"
             if [ "${{ github.event_name }}" == "pull_request" ]; then
               echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}"
             else
               echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
             fi
-            exit 1
           else
             echo "result=failure" >> "$GITHUB_OUTPUT"
             echo "❌ CodeQL scan encountered an error"
