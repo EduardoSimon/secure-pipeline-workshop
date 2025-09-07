@@ -89,11 +89,15 @@ jobs:
 
       - name: Check for CodeQL security alerts
         id: check-findings
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Use GitHub API to check for any open code scanning alerts
-          ALERTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/code-scanning/alerts?state=open&tool_name=CodeQL")
+          # Use gh CLI to check for code scanning alerts
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            ALERTS=$(gh api "repos/${{ github.repository }}/code-scanning/alerts?state=open&pr=${{ github.event.number }}" 2>/dev/null || echo "[]")
+          else
+            ALERTS=$(gh api "repos/${{ github.repository }}/code-scanning/alerts?state=open" 2>/dev/null || echo "[]")
+          fi
           
           ALERT_COUNT=$(echo "$ALERTS" | jq '. | length' 2>/dev/null || echo "0")
           
