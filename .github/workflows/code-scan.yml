@@ -83,21 +83,73 @@ jobs:
       - name: Perform CodeQL Analysis
         id: codeql-tool
         uses: github/codeql-action/analyze@v3
+        with:
+          upload: false
+          output: sarif-results
+
+      - name: Check SARIF for critical findings
+        id: check-findings
+        run: |
+          # Check if SARIF files contain any results
+          CRITICAL_COUNT=0
+          HIGH_COUNT=0
+          
+          for sarif_file in sarif-results/*.sarif; do
+            if [ -f "$sarif_file" ]; then
+              # Count critical/high severity findings
+              CRITICAL_RESULTS=$(jq -r '.runs[].results[]? | select(.level == "error" or .properties.severity == "critical") | .ruleId' "$sarif_file" 2>/dev/null | wc -l || echo "0")
+              HIGH_RESULTS=$(jq -r '.runs[].results[]? | select(.level == "warning" and .properties.severity == "high") | .ruleId' "$sarif_file" 2>/dev/null | wc -l || echo "0")
+              
+              CRITICAL_COUNT=$((CRITICAL_COUNT + CRITICAL_RESULTS))
+              HIGH_COUNT=$((HIGH_COUNT + HIGH_RESULTS))
+            fi
+          done
+          
+          echo "critical_count=$CRITICAL_COUNT" >> "$GITHUB_OUTPUT"
+          echo "high_count=$HIGH_COUNT" >> "$GITHUB_OUTPUT"
+          echo "Found $CRITICAL_COUNT critical and $HIGH_COUNT high severity findings"
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: sarif-results
+        if: always()
 
       - name: Set scan result
         id: scan-result
         if: always()
         run: |
-          if [ "${{ steps.codeql-tool.outcome }}" == "success" ]; then
-            echo "result=success" >> "$GITHUB_OUTPUT"
-            echo "✅ CodeQL scan completed - check security tab for any findings"
+          CRITICAL_COUNT="${{ steps.check-findings.outputs.critical_count }}"
+          HIGH_COUNT="${{ steps.check-findings.outputs.high_count }}"
+          
+          if [ "${{ steps.codeql-tool.outcome }}" != "success" ]; then
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            echo "❌ CodeQL scan encountered an error"
+            exit 1
+          elif [ "$CRITICAL_COUNT" -gt 0 ]; then
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            echo "❌ CodeQL found $CRITICAL_COUNT critical security issue(s)"
             if [ "${{ github.event_name }}" == "pull_request" ]; then
               echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}"
             else
               echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
             fi
-          else
-            echo "result=failure" >> "$GITHUB_OUTPUT"
-            echo "❌ CodeQL scan encountered an error"
             exit 1
+          elif [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            echo "❌ CodeQL found $HIGH_COUNT high severity security issue(s)"
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}"
+            else
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
+            fi
+            exit 1
+          else
+            echo "result=success" >> "$GITHUB_OUTPUT"
+            echo "✅ CodeQL scan completed - no critical/high severity findings"
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}"
+            else
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
+            fi
           fi
