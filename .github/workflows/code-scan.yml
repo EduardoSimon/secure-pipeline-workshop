@@ -97,17 +97,17 @@ jobs:
           if [ -f "sarif-results/javascript.sarif" ]; then
             # Count the number of results in the SARIF file
             RESULT_COUNT=$(python3 -c "
-            import json, sys
-            try:
-                with open('sarif-results/javascript.sarif', 'r') as f:
-                    data = json.load(f)
-                    total_results = 0
-                    for run in data.get('runs', []):
-                        total_results += len(run.get('results', []))
-                    print(total_results)
-            except:
-                print(0)
-            ")
+import json, sys
+try:
+    with open('sarif-results/javascript.sarif', 'r') as f:
+        data = json.load(f)
+        total_results = 0
+        for run in data.get('runs', []):
+            total_results += len(run.get('results', []))
+        print(total_results)
+except:
+    print(0)
+          ")
             echo "CODEQL_RESULTS_COUNT=$RESULT_COUNT" >> "$GITHUB_ENV"
             echo "Found $RESULT_COUNT CodeQL findings"
           else
