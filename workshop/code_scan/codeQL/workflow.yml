@@ -1,0 +1,92 @@
+# =============================================================================
+# CODEQL CODE SCAN JOB
+# =============================================================================
+#
+# CodeQL is a static analysis tool for finding security vulnerabilities in code
+# Repository: https://github.com/github/codeql
+#
+# TO USE THIS JOB:
+# 1. Copy this entire job definition into .github/workflows/code-scan.yml
+# 2. Replace the current jobs: definition with this one
+# 3. The job will automatically scan all code in the code/ directory
+# 4. The scan will fail if vulnerabilities are found
+# =============================================================================
+
+jobs:
+  codeql-scan:
+    name: CodeQL Security Scan
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.scan-result.outputs.result }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+          queries: security-extended,security-and-quality
+
+      - name: Perform CodeQL Analysis
+        id: codeql-tool
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: codeql
+          output: sarif-results
+          upload: false
+
+      - name: Check CodeQL Results
+        id: check-results
+        if: always()
+        run: |
+          # Check if SARIF file exists and contains results
+          if [ -f "sarif-results/javascript.sarif" ]; then
+            # Count the number of results in the SARIF file
+            RESULT_COUNT=$(python3 -c "
+            import json, sys
+            try:
+                with open('sarif-results/javascript.sarif', 'r') as f:
+                    data = json.load(f)
+                    total_results = 0
+                    for run in data.get('runs', []):
+                        total_results += len(run.get('results', []))
+                    print(total_results)
+            except:
+                print(0)
+            ")
+            echo "CODEQL_RESULTS_COUNT=$RESULT_COUNT" >> "$GITHUB_ENV"
+            echo "Found $RESULT_COUNT CodeQL findings"
+          else
+            echo "CODEQL_RESULTS_COUNT=0" >> "$GITHUB_ENV"
+            echo "No CodeQL SARIF file found"
+          fi
+
+      - name: Upload CodeQL SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: sarif-results/javascript.sarif
+          category: codeql
+
+      - name: Set scan result
+        id: scan-result
+        if: always()
+        run: |
+          if [ "${{ steps.codeql-tool.outcome }}" == "success" ] && [ "$CODEQL_RESULTS_COUNT" == "0" ]; then
+            echo "result=success" >> "$GITHUB_OUTPUT"
+            echo "✅ CodeQL scan passed - no critical vulnerabilities found"
+          elif [ "${{ steps.codeql-tool.outcome }}" == "success" ] && [ "$CODEQL_RESULTS_COUNT" != "0" ]; then
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            echo "❌ CodeQL scan failed - $CODEQL_RESULTS_COUNT vulnerabilities detected"
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}"
+            else
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
+            fi
+            exit 1
+          else
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            echo "❌ CodeQL scan encountered an error"
+            exit 1
+          fi
