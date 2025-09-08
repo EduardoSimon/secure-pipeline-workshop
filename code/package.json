@@ -9,9 +9,8 @@
     "test": "echo 'No tests configured'"
   },
   "dependencies": {
-    "lodash": "4.17.15"
+    "lodash": "^4.17.21"
   },
-  "devDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   },
