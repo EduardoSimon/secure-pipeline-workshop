@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   semgrep-scan:
-    name: Semgrep Community Scan
+    name: Semgrep SAST Scan
     runs-on: ubuntu-latest
     outputs:
       result: ${{ steps.scan-result.outputs.result }}
@@ -67,7 +67,7 @@ jobs:
             exit 1
           fi
   codeql-scan:
-    name: CodeQL Security Scan
+    name: CodeQL SAST Scan
     runs-on: ubuntu-latest
     outputs:
       result: ${{ steps.scan-result.outputs.result }}
@@ -132,3 +132,44 @@ jobs:
             echo "result=success" >> "$GITHUB_OUTPUT"
             echo "✅ CodeQL scan completed - no security alerts"
           fi
+  sca-scan:
+    name: SCA Scan with Dependency Check
+    runs-on: ubuntu-latest
+    outputs:
+      result: ${{ steps.scan-result.outputs.result }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Run Dependency Check scanner
+        id: scan-tool
+        uses: dependency-check/Dependency-Check_Action@2ba636726705b0f74f126ebeaacaf2ad4600b967 # main
+        with:
+          project: 'code'
+          path: './code'
+          format: 'HTML'
+          args: >
+            --failOnCVSS 7
+            --enableRetired
+
+      - name: Set scan result
+        id: scan-result
+        if: always()
+        run: |
+          if [ "${{ steps.scan-tool.outcome }}" == "success" ]; then
+            echo "result=success" >> "$GITHUB_OUTPUT"
+            echo "✅ Code scan passed - no critical vulnerabilities found"
+          else
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            echo "❌ Code scan failed - vulnerabilities detected"
+            exit 1
+          fi
+
+      - name: Upload scan report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+            name: Dependency Check Report
+            path: ${{github.workspace}}/reports
