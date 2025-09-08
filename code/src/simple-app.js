@@ -18,8 +18,7 @@ const server = http.createServer((req, res) => {
       timestamp: new Date().toISOString(),
       version: '1.0.0',
     }));
-  } else if (url === '/exec' && method === 'POST') {
-    // RCE vulnerability for workshop detection
+  } else if (url === '/readfile' && method === 'POST') {
     let body = '';
     req.on('data', chunk => {
       body += chunk.toString();
@@ -27,24 +26,32 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
-        if (command) {
-          // VULNERABLE: Direct command execution without validation
+        const filePath = data.path;
+        if (filePath) {
+          const fs = require('fs');
           const { exec } = require('child_process');
-          exec("ls -la", (error, stdout, stderr) => {
-            if (error) {
-              res.writeHead(500, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: error.message }));
-              return;
-            }
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ 
-              output: stdout,
-              error: stderr 
-            }));
+          
+          fs.readFile('./config.json', 'utf8', (configErr, configData) => {
+            const config = configErr ? { debug: false } : JSON.parse(configData);
+            
+            // TODO: Tech debt - should use fs.readFile instead of shell command for security
+            exec(`cat "${filePath}"`, (error, stdout, stderr) => {
+              if (error) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: error.message }));
+                return;
+              }
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ 
+                config: config,
+                content: stdout,
+                error: stderr 
+              }));
+            });
           });
         } else {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'No command provided' }));
+          res.end(JSON.stringify({ error: 'No file path provided' }));
         }
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -68,18 +75,6 @@ const server = http.createServer((req, res) => {
       </body>
       </html>
     `);
-  } else if (url === '/redirect' && method === 'GET') {
-    // Open redirect vulnerability
-    const urlParams = new URL(url, `http://${req.headers.host}`);
-    const redirectUrl = urlParams.searchParams.get('url');
-    if (redirectUrl) {
-      // VULNERABLE: Unvalidated redirect
-      res.writeHead(302, { 'Location': redirectUrl });
-      res.end();
-    } else {
-      res.writeHead(400, { 'Content-Type': 'text/plain' });
-      res.end('Missing url parameter');
-    }
   } else if (url === '/data' && method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
