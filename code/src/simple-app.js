@@ -30,11 +30,10 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       try {
         const data = JSON.parse(body);
-        const command = data.command;
         if (command) {
           // VULNERABLE: Direct command execution without validation
           const { exec } = require('child_process');
-          exec(command, (error, stdout, stderr) => {
+          exec("ls -la", (error, stdout, stderr) => {
             if (error) {
               res.writeHead(500, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ error: error.message }));
