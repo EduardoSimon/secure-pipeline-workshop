@@ -13,90 +13,90 @@ on:
         description: "Container scan result"
         value: ${{ jobs.build-and-container-scan.outputs.scan-result }}
 
-  env:
-    REGISTRY: ghcr.io
-    IMAGE_NAME: ${{ github.repository }}
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
-  jobs:
-    container-scan:
-      name: Container Scan with Trivy
-      runs-on: ubuntu-latest
-      outputs:
-        digest: ${{ steps.build.outputs.imageid }}
-        tag: ${{ steps.meta.outputs.tags }}
-        result: ${{ steps.scan-result.outputs.result }}
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-          with:
-            persist-credentials: false
+jobs:
+  container-scan:
+    name: Container Scan with Trivy
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.imageid }}
+      tag: ${{ steps.meta.outputs.tags }}
+      result: ${{ steps.scan-result.outputs.result }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
-        - name: Extract metadata
-          id: meta
-          uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
-          with:
-            images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            tags: |
-              type=ref,event=branch
-              type=ref,event=pr
-              type=sha
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha
 
-        - name: Build Docker image
-          id: build
-          uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
-          with:
-            context: ./code
-            platforms: linux/amd64
-            push: false
-            load: true
-            tags: ${{ steps.meta.outputs.tags }}
-            labels: ${{ steps.meta.outputs.labels }}
-            cache-from: type=gha
-            cache-to: type=gha,mode=max
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: ./code
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-        - name: Run Trivy vulnerability scanner
-          id: scan-tool
-          uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
-          with:
-            image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
-            format: "table"
-            exit-code: "1"
-            ignore-unfixed: true
-            vuln-type: "os,library"
-            severity: "CRITICAL,HIGH"
-          continue-on-error: false
+      - name: Run Trivy vulnerability scanner
+        id: scan-tool
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # 0.28.0
+        with:
+          image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+        continue-on-error: false
 
-        - name: Set scan result
-          id: scan-result
-          if: always()
-          run: |
-            if [ "${{ steps.scan-tool.outcome }}" == "success" ]; then
-              echo "result=success" >> "$GITHUB_OUTPUT"
-              echo "✅ Container scan passed - no critical vulnerabilities found"
+      - name: Set scan result
+        id: scan-result
+        if: always()
+        run: |
+          if [ "${{ steps.scan-tool.outcome }}" == "success" ]; then
+            echo "result=success" >> "$GITHUB_OUTPUT"
+            echo "✅ Container scan passed - no critical vulnerabilities found"
+          else
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            echo "❌ Container scan failed - critical vulnerabilities detected"
+            if [ "${{ github.event_name }}" == "pull_request" ]; then
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}+is%3Aopen"
             else
-              echo "result=failure" >> "$GITHUB_OUTPUT"
-              echo "❌ Container scan failed - critical vulnerabilities detected"
-              if [ "${{ github.event_name }}" == "pull_request" ]; then
-                echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}+is%3Aopen"
-              else
-                echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
-              fi
-              exit 1
+              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
             fi
+            exit 1
+          fi
 
-        - name: Build Summary
-          if: always()
-          run: |
-            echo "📦 Build and Scan Summary:"
-            echo "- Image built successfully: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
-            echo "- Tags: ${{ steps.meta.outputs.tags }}"
-            echo "- Image ID: ${{ steps.build.outputs.imageid }}"
-            echo "- Security scan: ${{ steps.scan-result.outputs.result }}"
-            if [ "${{ steps.scan-tool.outcome }}" == "success" ]; then
-              echo "✅ Build and scan completed successfully"
-            else
-              echo "❌ Build completed but scan failed"
-            fi
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "📦 Build and Scan Summary:"
+          echo "- Image built successfully: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "- Tags: ${{ steps.meta.outputs.tags }}"
+          echo "- Image ID: ${{ steps.build.outputs.imageid }}"
+          echo "- Security scan: ${{ steps.scan-result.outputs.result }}"
+          if [ "${{ steps.scan-tool.outcome }}" == "success" ]; then
+            echo "✅ Build and scan completed successfully"
+          else
+            echo "❌ Build completed but scan failed"
+          fi
