@@ -9,7 +9,7 @@
 # 1. Copy this entire job definition into .github/workflows/code-scan.yml
 # 2. Replace the current jobs: definition with this one
 # 3. The job will automatically scan all code in the code/ directory
-# 4. The scan will fail if vulnerabilities with CVSS >= 7 are found
+# 4. The scan will fail if vulnerabilities are found
 # =============================================================================
 
 jobs:

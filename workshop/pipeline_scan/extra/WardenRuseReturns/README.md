@@ -15,8 +15,9 @@ Let's see if you can assume the `warden-production` role!
 > AWS does not support all the claims that GitHub Actions OIDC token provides.
 > You may need to use the `claims.json` file to include the claims that are supported by AWS.
 > ```bash
-> gh api /repos/unicrons/secure-pipeline-workshop/actions/oidc/customization/sub -H "Accept: application/vnd.github+json" -X PUT --input claims.json
+> gh api /repos/<your-user-name/organization>/secure-pipeline-workshop/actions/oidc/customization/sub -H "Accept: application/vnd.github+json" -X PUT --input claims.json
 > ```
+> Note: the username or the organization is encoded in the url of the repository
 
 
 

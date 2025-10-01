@@ -64,7 +64,7 @@ While AI security analysis offers powerful capabilities, it's important to under
 
 ## Tools Used in This Module
 
-- [**Google Gemini**](https://github.com/google-gemini/gemini-cli-action) - AI-powered code analysis and security review tool
+- [**Google Gemini**](https://github.com/google-github-actions/run-gemini-cli) - AI-powered code analysis and security review tool
 
 ## Learning Objectives
 
@@ -81,3 +81,6 @@ By the end of this module, you will:
 - [ ] Regular review of AI-generated security recommendations
 - [ ] Team training on AI security insights
 - [ ] Continuous improvement based on AI feedback
+
+## References
+- [Finding vulnerabilities in modern web apps using Claude Code and OpenAI Codex](https://semgrep.dev/blog/2025/finding-vulnerabilities-in-modern-web-apps-using-claude-code-and-openai-codex)

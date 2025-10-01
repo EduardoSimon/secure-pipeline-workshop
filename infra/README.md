@@ -1,5 +1,8 @@
 # Infrastructure as Code
 
+> [!CAUTION]
+> This infra folder is a simulation and has not been used in the actual workshop. It serves as a demonstration of security misconfigurations for educational purposes.
+
 This directory contains Terraform configurations for deploying the workshop application infrastructure on AWS. The infrastructure is intentionally designed with various security misconfigurations to demonstrate IaC security scanning tools.
 
 ## Infrastructure Components

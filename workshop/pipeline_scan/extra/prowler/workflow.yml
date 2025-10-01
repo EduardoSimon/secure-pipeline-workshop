@@ -61,8 +61,7 @@ jobs:
 
       - name: Install Prowler
         run: |
-            # TODO: Installing from commit until 5.10 is released
-            pipx install git+https://github.com/prowler-cloud/prowler.git@ccd1afa8779e34e50a84993fa932e257feaf27af
+            pipx install prowler
             prowler -v
 
       - name: Run Prowler
