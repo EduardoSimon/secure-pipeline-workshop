@@ -171,19 +171,12 @@ jobs:
         env:
           SCAN_OUTCOME: ${{ steps.scan-tool.outcome }}
         run: |
-          if [ "$SCAN_OUTCOME" == "success" ]; then
-            echo "result=success" >> "$GITHUB_OUTPUT"
-            echo "✅ Container scan passed - no critical vulnerabilities found"
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}+is%3Aopen"
           else
-            echo "result=failure" >> "$GITHUB_OUTPUT"
-            echo "❌ Container scan failed - critical vulnerabilities detected"
-            if [ "${{ github.event_name }}" == "pull_request" ]; then
-              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.number }}+is%3Aopen"
-            else
-              echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
-            fi
-            exit 1
+            echo "🔍 View findings: https://github.com/${{ github.repository }}/security/code-scanning"
           fi
+          exit 1
 
       - name: Build Summary
         if: always()
