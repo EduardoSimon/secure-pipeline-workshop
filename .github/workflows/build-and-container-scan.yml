@@ -170,8 +170,6 @@ jobs:
         if: always()
         env:
           SCAN_OUTCOME: ${{ steps.scan-tool.outcome }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           if [ "$SCAN_OUTCOME" == "success" ]; then
             echo "result=success" >> "$GITHUB_OUTPUT"
